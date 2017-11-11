@@ -19,13 +19,34 @@ class TestStringIterator extends TestCase
         $this->assertEquals($it->current(), 'f');
     }
 
-    public function testStringIteratorSetLength(){
+    public function testStringIteratorSetLength()
+    {
         $it = new StringIterator('foo_bar');
         $it->next();
 
         $this->assertEquals($it->current(), 'o');
         $this->assertEquals($it->setLength(3)->step(),'oo_');
 
+    }
+
+    public function testCycleWork()
+    {
+        $it = new StringIterator('foo_bar', 3,3);
+        foreach($it as $k=>$v)
+        {
+            $this->assertTrue(in_array($v,['foo','_ba','r']));
+        }
+    }
+
+    public function testLambdaWork()
+    {
+        $it = new StringIterator('foo_bar', 3,3);
+        $it->setLambda(function($x){return strtoupper($x);});
+
+        foreach($it as $k=>$v)
+        {
+            $this->assertTrue(in_array($v,['FOO','_BA','R']));
+        }
     }
 
     public function testStringIteratorStepWithDefaultValues()

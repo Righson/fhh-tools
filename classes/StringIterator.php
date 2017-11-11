@@ -13,6 +13,10 @@ class StringIterator implements Iterator
     private $position;
     private $length;
     private $step;
+    /**
+     * @var callable
+     */
+    private $lambda;
 
     /**
      * StringIterator constructor.
@@ -26,6 +30,15 @@ class StringIterator implements Iterator
         $this->position = 0;
         $this->step = $step;
         $this->length = $length;
+        $this->lambda = null;
+    }
+
+    /**
+     * @param callable $lambda
+     */
+    public function setLambda(callable $lambda)
+    {
+        $this->lambda = $lambda;
     }
 
     /**
@@ -40,6 +53,7 @@ class StringIterator implements Iterator
 
     /**
      * @param int $length
+     * @return $this
      */
     public function setLength(int $length)
     {
@@ -63,9 +77,15 @@ class StringIterator implements Iterator
     public function current()
     {
         if ($this->length != 0) {
-            return substr($this->target, $this->position, $this->length);
+            $ret = substr($this->target, $this->position, $this->length);
         } else {
-            return substr($this->target, $this->position, 1);
+            $ret = substr($this->target, $this->position, 1);
+        }
+
+        if ($this->lambda) {
+            return call_user_func_array($this->lambda, [$ret]);
+        } else {
+            return $ret;
         }
     }
 
