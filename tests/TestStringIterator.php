@@ -19,6 +19,15 @@ class TestStringIterator extends TestCase
         $this->assertEquals($it->current(), 'f');
     }
 
+    public function testStringIteratorSetLength(){
+        $it = new StringIterator('foo_bar');
+        $it->next();
+
+        $this->assertEquals($it->current(), 'o');
+        $this->assertEquals($it->setLength(3)->step(),'oo_');
+
+    }
+
     public function testStringIteratorStepWithDefaultValues()
     {
         $it = new StringIterator('foo_bar');
@@ -51,12 +60,17 @@ class TestStringIterator extends TestCase
     public function testStringIteratorStepWithCustomValues()
     {
         $it = new StringIterator('foo_bar', 3);
-
         $this->assertEquals($it->step(), 'f');
+
         $it = new StringIterator('foo_bar', 3, 3);
         $this->assertEquals($it->step(), 'foo');
         $this->assertEquals($it->skip(1)->step(), 'bar');
         $this->assertEquals($it->step(), false);
+
+        $it = new StringIterator('foo_bar', 1, 3);
+        $this->assertEquals($it->step(), 'foo');
+        $this->assertEquals($it->step(), 'oo_');
+        # $this->assertEquals($it->step(), false);
     }
 
     public function testStringIteratorAfterStepWithCustomValues()

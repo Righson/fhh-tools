@@ -30,10 +30,12 @@ class StringIterator implements Iterator
 
     /**
      * @param int $step
+     * @return $this
      */
     public function setStep(int $step)
     {
         $this->step = $step;
+        return $this;
     }
 
     /**
@@ -42,6 +44,7 @@ class StringIterator implements Iterator
     public function setLength(int $length)
     {
         $this->length = $length;
+        return $this;
     }
 
     /**
