@@ -43,4 +43,12 @@ class StringTypeTest extends TestCase
         $this->assertEquals('Прощай вселенная!', $str);
     }
 
+    public function testSlice()
+    {
+        $str = new StringType('Тестовая строка');
+        $this->assertEquals('вая', $str['5:8']);
+        $str['5:8'] = '+++';
+        $this->assertEquals('Тесто+++ строка', $str);
+    }
+
 }

@@ -35,7 +35,7 @@ class StringType implements ArrayAccess
             list($start, $length) = explode(':', $offset);
             $start = (int) $start;
             $length = (int) $length;
-            return ($length) ? mb_substr($this->content, $start, $length) : mb_substr($this->content, $start);
+            return ($length) ? mb_substr($this->content, $start, $length - $start) : mb_substr($this->content, $start);
         } else {
             $offsetInt = (int) $offset;
             return mb_substr($this->content, $offsetInt, 1);
@@ -46,18 +46,22 @@ class StringType implements ArrayAccess
     {
         $offsetInt = (int)$offset;
         if (is_integer($offset)) {
-            $lenght = mb_strlen($this->content);
+            $length = mb_strlen($this->content);
             $before = ($offsetInt) ? mb_substr($this->content, 0, $offsetInt) : '';
-            $after = ($offsetInt == $lenght) ? '' : mb_substr($this->content, $offsetInt + 1);
+            $after = ($offsetInt == $length) ? '' : mb_substr($this->content, $offsetInt + 1);
 
-            $this->content = $before . $value . $after; // mb_substr($this->content, $offsetInt+1)
+            $this->content = $before . $value . $after;
         } elseif (is_string($offset)) {
             list($start, $length) = explode(':', $offset);
             $start = (int) $start;
             $length = (int) $length;
 
-            if ($length) $this->content = $value . mb_substr($this->content, $length);
-            else $this->content = mb_substr($this->content, 0, $start) . $value;
+            $before = ($start) ? mb_substr($this->content, 0, $start) : '';
+            $after = ($length) ? mb_substr($this->content, $length) : '';
+
+            # print_r([$start, $length, $value]);
+
+            $this->content = $before . $value . $after;
         }
         return $this->content;
     }
