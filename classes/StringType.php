@@ -5,10 +5,9 @@
  * Date: 18.11.2017
  * Time: 12:04
  */
+namespace classes;
 
-
-
-class StringType implements ArrayAccess
+class StringType implements \ArrayAccess
 {
     private $content;
 
@@ -71,8 +70,92 @@ class StringType implements ArrayAccess
         // TODO: Implement offsetUnset() method.
     }
 
-    public function __toString()
+    public function before($needle) {
+        $pos = strpos($this->content, $needle);
+        if(is($pos)) {
+            return mb_substr($this->content, 0, $pos);
+        } else {
+            return $this->content;
+        }
+    }
+
+    public function toString()
     {
         return $this->content;
+    }
+
+    public function __toString()
+    {
+        return $this->toString();
+    }
+
+    public function format(string $string): string
+    {
+        $tempStr = '';
+        $resultStr = '';
+        $tmpContent = $this->content;
+
+        foreach (str_split($string) as $char) {
+            if ($this->content === '') break;
+
+            if (is_numeric($char)) {
+                $tempStr .= $char;
+            } else {
+                $resultStr .= $this[":$tempStr"] . $char;
+                $this->content = $this["$tempStr:"];
+                $tempStr = '';
+            }
+        }
+
+        $resultStr .= $this->content;
+
+        $this->content = $tmpContent;
+
+        return $resultStr;
+    }
+
+    public function take(int $chunk)
+    {
+        if (strlen($this->content) <= $chunk) {
+            $ret = $this->content;
+            $this->content = '';
+        } else {
+            $ret = $this[":$chunk"];
+            $this->content = $this["$chunk:"];
+        }
+        return $ret;
+    }
+
+    public function length(): int
+    {
+        return strlen($this->content);
+    }
+
+    public function count(string $string): int
+    {
+        return substr_count($this->content, $string);
+    }
+
+    /**
+     * @param string $delimiter
+     * @param int $take
+     * @return array
+     * @throws IncorrectValue
+     *
+     */
+    public function split(string $delimiter, int $take=0)
+    {
+        $t = explode($delimiter, $this->content);
+
+        if(abs($take) > count($t)) throw new IncorrectValue("Out of range");
+
+        if ($take < 0) {
+
+            return $t[count($t) + $take];
+        } elseif ( $take > 0) {
+            return $t[$take];
+        } else {
+            return $t;
+        }
     }
 }
