@@ -2,6 +2,7 @@
 
 use exceptions\IncorrectValue;
 
+require __DIR__ . "/../exceptions/CommonException.php";
 require __DIR__ . "/../exceptions/IncorrectValue.php";
 /**
  * Created by PhpStorm.
@@ -92,6 +93,20 @@ function mapEach(callable $fn, Generator $gn)
     }
 }
 
+function mapper ($fn, Generator $gn)
+{
+    while (true) {
+        $dataRaw = yield;
+
+        if(is_string($fn)) {
+            $gn->send(call_user_func($fn, $dataRaw));
+            continue;
+        }
+
+        $gn->send($fn($dataRaw));
+    }
+}
+
 function mapperKV(callable $fn, Generator $gn)
 {
     while (true) {
@@ -128,7 +143,7 @@ function broadMapperKV(array $fns, Generator $gn)
  * @return Generator
  * @throws IncorrectValue
  */
-function sendElement($element, \Generator $gn)
+function sendElement($element, Generator $gn)
 {
     while (true) {
         $data = yield;
@@ -140,7 +155,7 @@ function sendElement($element, \Generator $gn)
     }
 }
 
-function sendElementWithMapFnResultKV(string $element, callable $fn, \Generator $gn)
+function sendElementWithMapFnResultKV(string $element, callable $fn, Generator $gn)
 {
     while (true) {
         list($idx, $data) = yield;
