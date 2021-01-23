@@ -6,12 +6,12 @@
  * Time: 16:22
  */
 
-namespace classes;
+namespace classes\utils\types;
 
 
 class StackType
 {
-    private $container;
+    private array $container;
 
     public function __construct()
     {
