@@ -1,6 +1,7 @@
 <?php
 
 
+use exceptions\EmptyValue;
 
 function array_repair(array $arr): array
 {
@@ -60,11 +61,9 @@ function test($value)
     switch (gettype($value)) {
         case 'string':
             return (strlen($value) !== 0);
-            break;
         case 'integer':
         case 'double':
             return $value !== 0;
-            break;
         default:
             return !empty($value);
     }
@@ -122,18 +121,6 @@ function booleanToHumanReadable($value)
     return ($value) ? "yes" : "no";
 }
 
-function diePoint(...$messages)
-{
-    foreach ($messages as $message) {
-        if (is_string($message)) {
-            println($message);
-        } else {
-            print_r($message);
-        }
-    }
-    die();
-}
-
 function os_path(...$path_elements)
 {
     return implode(DIRECTORY_SEPARATOR, $path_elements);
@@ -176,7 +163,7 @@ function str_replace_lnk($search, $replace, &$subject, $count = null)
  * @param $obj
  * @param $name
  * @return mixed
- * @throws \exceptions\EmptyValue
+ * @throws EmptyValue
  */
 function get_const($obj, $name)
 {
@@ -184,7 +171,7 @@ function get_const($obj, $name)
     if (defined($cnst)) {
         return constant($cnst);
     } else {
-        throw new \exceptions\EmptyValue('Undefined constant ' . $cnst);
+        throw new EmptyValue('Undefined constant ' . $cnst);
     }
 }
 
