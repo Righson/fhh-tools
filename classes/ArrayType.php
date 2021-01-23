@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpFullyQualifiedNameUsageInspection */
+
 /**
  * Created by PhpStorm.
  * User: programmer
@@ -8,11 +9,18 @@
 
 namespace classes;
 
+require_once "../lib/common.php";
 
-class ArrayType implements \ArrayAccess
+
+use ArrayAccess;
+
+class ArrayType implements ArrayAccess
 {
-    protected $container;
-    protected $pos;
+    const SEND_OPT_ARGS = 0;
+    const SEND_OPT_FULL = 1;
+    const SEND_OPT_KEY = 2;
+    protected array $container;
+    protected int $pos;
 
     public function __construct(array $array = [])
     {
@@ -25,6 +33,11 @@ class ArrayType implements \ArrayAccess
         }
     }
 
+    public function reset()
+    {
+        $this->pos = 0;
+    }
+
     /**
      * @param string $newKey
      * @param array ...$pieces
@@ -35,7 +48,8 @@ class ArrayType implements \ArrayAccess
         $at = new ArrayType();
 
         foreach ($pieces as $idx => $piece) {
-            if($idx == 0) {
+            if (count($piece) === 0) continue;
+            if ($idx == 0) {
                 $basis = $piece;
                 $basisKey = $basis[0][$newKey];
 
@@ -51,31 +65,31 @@ class ArrayType implements \ArrayAccess
         return $at;
     }
 
-    public function reset()
+    public function append($value, $offset = null)
     {
-        $this->pos = 0;
+        if (empty($offset)) $offset = count($this->container);
+
+        $this->offsetSet($offset, $value);
     }
 
     /**
-     * Offset to retrieve
-     * @link https://php.net/manual/en/arrayaccess.offsetget.php
+     * Offset to set
+     * @link https://php.net/manual/en/arrayaccess.offsetset.php
      * @param mixed $offset <p>
-     * The offset to retrieve.
+     * The offset to assign the value to.
      * </p>
-     * @return mixed Can return all value types.
+     * @param mixed $value <p>
+     * The value to set.
+     * </p>
+     * @return void
      * @since 5.0.0
      */
-    public function offsetGet($offset)
+    public function offsetSet($offset, $value)
     {
-        if(is_numeric($offset) && $offset < 0 && abs($offset) < count($this->container)) {
-            return $this->container[count($this->container) + $offset];
-        }
-
         if ($this->offsetExists($offset)) {
-            return $this->container[$offset];
-        } else {
-            return false;
+            $this->reset();
         }
+        $this->container[$offset] = $value;
     }
 
     /**
@@ -93,6 +107,44 @@ class ArrayType implements \ArrayAccess
     public function offsetExists($offset): bool
     {
         return isset($this->container[$offset]);
+    }
+
+    public function join(array $add, string $key)
+    {
+        $newCont = array();
+        $cntr = 0;
+
+        foreach ($this->container as $idx_ => $contValue) {
+            foreach ($add as $idx => $value) {
+                $arr = [$value[$key] => $value];
+                $newCont[$cntr] = $this->container[$idx_] + $arr;
+                $cntr++;
+            }
+        }
+
+        $this->container = $newCont;
+    }
+
+    /**
+     * Offset to retrieve
+     * @link https://php.net/manual/en/arrayaccess.offsetget.php
+     * @param mixed $offset <p>
+     * The offset to retrieve.
+     * </p>
+     * @return mixed Can return all value types.
+     * @since 5.0.0
+     */
+    public function offsetGet($offset)
+    {
+        if (is_numeric($offset) && $offset < 0 && abs($offset) < count($this->container)) {
+            return $this->container[count($this->container) + $offset];
+        }
+
+        if ($this->offsetExists($offset)) {
+            return $this->container[$offset];
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -123,31 +175,42 @@ class ArrayType implements \ArrayAccess
         }
     }
 
-    public function append($value, $offset = null)
+    public function unpack(array $from, array $bind): bool
     {
-        if (empty($offset)) $offset = count($this->container);
+        $on = true;
+        $off = false;
 
-        $this->offsetSet($offset, $value);
-    }
+        $restMode = $off;
+        $restKey = '';
 
-    /**
-     * Offset to set
-     * @link https://php.net/manual/en/arrayaccess.offsetset.php
-     * @param mixed $offset <p>
-     * The offset to assign the value to.
-     * </p>
-     * @param mixed $value <p>
-     * The value to set.
-     * </p>
-     * @return void
-     * @since 5.0.0
-     */
-    public function offsetSet($offset, $value)
-    {
-        if ($this->offsetExists($offset)) {
-            $this->reset();
+        foreach ($from as $idx => $item) {
+            if (!is_numeric($idx)) return false;
+
+            if (!$restMode && isset($bind[$idx]) && starts_with($bind[$idx], '&rest:')) {
+
+                $rest = explode(':', $bind[$idx]);
+                if (empty($rest[1])) return false;
+
+                $restKey = $rest[1];
+                $restMode = $on;
+            }
+
+            if (is_numeric($item)) $item = $item + 0;
+
+            if ($restMode) {
+                $this->container[$restKey][] = $item;
+                continue;
+            }
+
+            if (isset($bind[$idx])) {
+                $this->container[$bind[$idx]] = $item;
+                continue;
+            }
+
+            return false;
         }
-        $this->container[$offset] = $value;
+
+        return true;
     }
 
     public function all($keys = []): bool
@@ -165,15 +228,16 @@ class ArrayType implements \ArrayAccess
         return true;
     }
 
-    public function any($keys = []): bool
+    public function any(...$keys): bool
     {
+        if ($this->length() == 0) return true;
         if (empty($keys)) {
             foreach ($this->container as $value) {
                 if (!empty($value)) return true;
             }
         } else {
             foreach ($keys as $key) {
-                if ($this->container[$key]) return true;
+                if (isset($this->container[$key]) && $this->container[$key]) return true;
             }
         }
 
@@ -222,8 +286,6 @@ class ArrayType implements \ArrayAccess
         return $ret;
     }
 
-
-
     public function length(): int
     {
         return count($this->container);
@@ -234,10 +296,12 @@ class ArrayType implements \ArrayAccess
         $ret = [];
 
         while ($n > 0) {
-            $item = $this->container[$this->pos];
-            if (!test($item)) break;
+            if (isset($this->container[$this->pos])) {
+                $item = $this->container[$this->pos];
+                if (!test($item)) break;
 
-            array_push($ret, $item);
+                array_push($ret, $item);
+            }
             $this->pos++;
             $n--;
 
@@ -252,29 +316,88 @@ class ArrayType implements \ArrayAccess
         $this->pos = 0;
     }
 
-    public function join(array $add, string $key)
-    {
-        $newCont = array();
-        $cntr = 0;
-
-        foreach ($add as $idx => $value) {
-            foreach ($this->container as $idx_ => $contValue) {
-                $arr = [$value[$key] => $value];
-                $newCont[$cntr] = $this->container[$idx_] + $arr;
-                $cntr++;
-            }
-        }
-
-        $this->container = $newCont;
-    }
-
     public function apply(array $basis)
     {
         $this->container = $basis;
     }
 
-    public function implode( string $sep =''): string
+    public function implode(string $sep = ''): string
     {
         return implode($sep, $this->container);
+    }
+
+    public function have($value)
+    {
+        return in_array($value, $this->container, true);
+    }
+
+    public function map(\Closure $closure, $sendArgs = self::SEND_OPT_ARGS)
+    {
+        $ret = [];
+        foreach ($this->container as $idx => $item) {
+            switch ($sendArgs) {
+                case self::SEND_OPT_ARGS:
+                    array_push($ret, $closure($item));
+                    break;
+                case self::SEND_OPT_FULL:
+                    array_push($ret, $closure($idx, $item));
+                    break;
+                case self::SEND_OPT_KEY:
+                    array_push($ret, $closure($idx));
+                    break;
+                default:
+                    return [];
+            }
+        }
+
+        return $ret;
+    }
+
+    public function reduce(\Closure $closure, $target)
+    {
+
+        foreach ($this->container as $item) {
+            $target = $closure($target, $item);
+        }
+
+        return $target;
+    }
+
+    public function del($offset)
+    {
+        if (isset($this->container[$offset])) {
+            unset($this->container[$offset]);
+            return true;
+        }
+        $pos = array_search($offset, $this->container);
+        unset($this->container[$pos]);
+        return true;
+    }
+
+    public function slice(int $start, int $end)
+    {
+        $finish = $end - $start + 1;
+        if ($end < 0) $finish = count($this->container) + $end;
+
+        return new ArrayType(array_slice($this->container, $start, $finish));
+    }
+
+    public function head()
+    {
+        $firstK = array_key_first($this->container);
+        return new ArrayType($this->container[$firstK]);
+    }
+
+    public function values()
+    {
+        return array_values($this->container);
+    }
+
+    public function getDefault(string $key, $default=false)
+    {
+        if(isset($this->container[$key])) {
+            return $this->container[$key];
+        }
+        return $default;
     }
 }

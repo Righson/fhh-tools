@@ -159,6 +159,11 @@ function str_replace_lnk($search, $replace, &$subject, $count = null)
     $subject = str_replace($search, $replace, $subject, $count);
 }
 
+function starts_with($haystack, $needle)
+{
+    return (substr_compare($haystack, $needle, 0, strlen($needle)) === 0);
+}
+
 /**
  * @param $obj
  * @param $name
