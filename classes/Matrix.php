@@ -9,11 +9,9 @@
 namespace classes;
 
 
-use classes\ArrayType;
-
 class Matrix
 {
-    private $container;
+    private ArrayType $container;
 
     public function __construct($collection)
     {
@@ -54,6 +52,12 @@ class Matrix
                 }
         }
 
+        return new Matrix($newCont);
+    }
+
+    public function intersect(array $set)
+    {
+        $newCont = array_intersect($this->get(), $set);
         return new Matrix($newCont);
     }
 }
