@@ -1,9 +1,6 @@
-<?php
-
-use exceptions\IncorrectValue;
-
-require __DIR__ . "/../exceptions/CommonException.php";
-require __DIR__ . "/../exceptions/IncorrectValue.php";
+<?php /** @noinspection PhpInconsistentReturnPointsInspection */
+/** @noinspection PhpUnnecessaryFullyQualifiedNameInspection */
+/** @noinspection PhpFullyQualifiedNameUsageInspection */
 /**
  * Created by PhpStorm.
  * User: programmer
@@ -12,6 +9,8 @@ require __DIR__ . "/../exceptions/IncorrectValue.php";
  */
 
 /* -- Источники -- */
+
+use exceptions\IncorrectValue;
 
 /**
  * @param array $source
@@ -35,13 +34,26 @@ function sourceKV(array $source, Generator $gn)
 
 /**
  * @param Generator $gn
- * @return Generator
  */
 function genQuotes(Generator $gn)
 {
     while (true) {
         $data = yield;
         $gn->send("_$data");
+    }
+}
+
+function genPair(Generator $gn)
+{
+    $send = [];
+
+    while (true) {
+        $data = yield;
+        array_push($send, $data);
+        if (count($send) > 1) {
+            $gn->send($send);
+            $send = [];
+        }
     }
 }
 
@@ -143,7 +155,7 @@ function broadMapperKV(array $fns, Generator $gn)
  * @return Generator
  * @throws IncorrectValue
  */
-function sendElement($element, Generator $gn)
+function sendElement($element, \Generator $gn)
 {
     while (true) {
         $data = yield;
@@ -177,6 +189,7 @@ function printer()
 
 /**
  * @param array $arr
+ * @return Generator
  */
 function pusher(array &$arr)
 {
@@ -203,6 +216,7 @@ function joinString(&$string, $glue)
 
 /**
  * @param array $arr
+ * @return Generator
  */
 function pusherByKey(array &$arr)
 {
@@ -252,10 +266,16 @@ function pusherByMap($map, array &$arr, $useIndex = false)
 
             }
         }
-        if (all([(string) $first, (string) $second, isset($map[':defaults'])])) {
+        if (all([(string)$first, (string)$second, isset($map[':defaults'])])) {
 
             foreach ($map[':defaults'] as $defaultKey => $defaultValue) {
-                $arr = insertValue($arr, $first, $second, $defaultKey, $defaultValue);
+                foreach (array_keys($arr[$first]) as $key) {
+                    if (in_array($defaultKey, $map[$key]) && empty($arr[$first][$key][$defaultKey])) {
+                        $second = $key;
+                        $arr = insertValue($arr, $first, $second, $defaultKey, $defaultValue);
+                        break;
+                    }
+                }
             }
         }
     }
@@ -277,6 +297,14 @@ function printerKV()
     }
 }
 
+function executer(callable $fn)
+{
+    while (true) {
+        $data = yield;
+        $fn($data);
+    }
+}
+
 # helpers
 /**
  * helper
@@ -290,9 +318,15 @@ function printerKV()
 function insertValue($arr, $first, $second, $key, $value)
 {
     if (!isset($arr[$first][$second])) $arr[$first][$second] = [];
-    if (!isset($arr[$first][$second][$key])) $arr[$first][$second][$key] = '';
 
-    $arr[$first][$second][$key] = $value;
+    if (!isset($arr[$first][$second][$key])) $arr[$first][$second][$key] = '';
+    elseif ($value != "" && $arr[$first][$second][$key] != "") $value = " $value";
+
+    if(is_int($value)) {
+        $arr[$first][$second][$key] = $value;
+        return $arr;
+    }
+    $arr[$first][$second][$key] .= $value;
     return $arr;
 }
 
