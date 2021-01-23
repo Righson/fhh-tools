@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpFullyQualifiedNameUsageInspection */
+
 /**
  * Created by PhpStorm.
  * User: dmitrijm
@@ -7,9 +8,12 @@
  */
 namespace classes;
 
+
+use exceptions\IncorrectValue;
+
 class StringType implements \ArrayAccess
 {
-    private $content;
+    private string $content;
 
     public function __construct($value)
     {
@@ -58,8 +62,6 @@ class StringType implements \ArrayAccess
             $before = ($start) ? mb_substr($this->content, 0, $start) : '';
             $after = ($length) ? mb_substr($this->content, $length) : '';
 
-            # print_r([$start, $length, $value]);
-
             $this->content = $before . $value . $after;
         }
         return $this->content;
@@ -82,6 +84,13 @@ class StringType implements \ArrayAccess
     public function toString()
     {
         return $this->content;
+    }
+
+    public function iter($by=1)
+    {
+        foreach (str_split($this->content, $by) as $char) {
+            yield $char;
+        }
     }
 
     public function __toString()
@@ -150,12 +159,31 @@ class StringType implements \ArrayAccess
         if(abs($take) > count($t)) throw new IncorrectValue("Out of range");
 
         if ($take < 0) {
-
             return $t[count($t) + $take];
         } elseif ( $take > 0) {
             return $t[$take];
         } else {
             return $t;
         }
+    }
+
+    public function join(string $joinStr)
+    {
+        $this->content .= $joinStr;
+    }
+
+    /**
+     * @param callable $fn
+     * @return StringType
+     * @throws IncorrectValue
+     */
+    public function apply(callable $fn): StringType
+    {
+        $cont = $this->content;
+        $res = call_user_func_array($fn,[$cont]);
+        if(is_string($res)) {
+            return new StringType($res);
+        }
+        throw new IncorrectValue("apply function returns not a string!");
     }
 }
